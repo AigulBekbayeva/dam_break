@@ -171,7 +171,22 @@ def flood_extent(files: list[Path]) -> tuple[Window, rasterio.Affine, str]:
 # ────────────────────────────────────────────────────────────────── упаковка
 
 
-def pack_atlas(frames: list[np.ndarray], w: int, h: int, out_dir: Path, prefix: str) -> dict:
+# Формат листов. WebP lossless побитово равен PNG и всегда меньше его.
+# Сжатие с потерями здесь неприменимо: оно размывает кромку затопления
+# и «заливает» сушу — см. раздел про форматы в README.
+FMT = {"png": (".png", {"optimize": True}),
+       "webp": (".webp", {"lossless": True, "quality": 100, "method": 6})}
+
+
+def save_gray(arr: np.ndarray, path_base: Path, fmt: str) -> str:
+    ext, opts = FMT[fmt]
+    path = path_base.with_suffix(ext)
+    Image.fromarray(arr, mode="L").save(path, **opts)
+    return path.name
+
+
+def pack_atlas(frames: list[np.ndarray], w: int, h: int, out_dir: Path, prefix: str,
+               fmt: str = "png") -> dict:
     """Кадры → сетка ячеек w×h в нескольких PNG-листах."""
     cols = max(1, SHEET_MAX // w)
     rows = max(1, SHEET_MAX // h)
@@ -185,21 +200,15 @@ def pack_atlas(frames: list[np.ndarray], w: int, h: int, out_dir: Path, prefix: 
         for j, fr in enumerate(chunk):
             r, c = divmod(j, cols)
             sheet[r * h : (r + 1) * h, c * w : (c + 1) * w] = fr
-        name = f"{prefix}_atlas{len(sheets)}.png"
-        Image.fromarray(sheet, mode="L").save(out_dir / name, optimize=True)
-        sheets.append(name)
+        sheets.append(save_gray(sheet, out_dir / f"{prefix}_atlas{len(sheets)}", fmt))
 
     return {"cols": cols, "rows": rows, "perSheet": per_sheet, "sheets": sheets}
-
-
-def save_gray(arr: np.ndarray, path: Path):
-    Image.fromarray(arr, mode="L").save(path, optimize=True)
 
 
 # ─────────────────────────────────────────────────────────────────── обработка
 
 
-def process(sc: Scenario, max_dim: int, max_frames: int) -> dict:
+def process(sc: Scenario, max_dim: int, max_frames: int, fmt: str = "png") -> dict:
     files = sc.files
     if len(files) > max_frames:
         idx = np.linspace(0, len(files) - 1, max_frames).round().astype(int)
@@ -284,9 +293,9 @@ def process(sc: Scenario, max_dim: int, max_frames: int) -> dict:
         iso = None
 
     prefix = re.sub(r"[^a-z0-9]+", "-", sc.key.lower()).strip("-") or "sc"
-    atlas = pack_atlas(frames, dw, dh, OUT_DIR, prefix)
-    save_gray(arrival.astype(np.uint8), OUT_DIR / f"{prefix}_arrival.png")
-    save_gray(depth_max, OUT_DIR / f"{prefix}_maxdepth.png")
+    atlas = pack_atlas(frames, dw, dh, OUT_DIR, prefix, fmt)
+    arrival_name = save_gray(arrival.astype(np.uint8), OUT_DIR / f"{prefix}_arrival", fmt)
+    maxdepth_name = save_gray(depth_max, OUT_DIR / f"{prefix}_maxdepth", fmt)
 
     corners = corner_lonlat(dst_bounds)
     size_mb = sum((OUT_DIR / s).stat().st_size for s in atlas["sheets"]) / 1e6
@@ -307,8 +316,8 @@ def process(sc: Scenario, max_dim: int, max_frames: int) -> dict:
         "times": iso,
         "timeIsHours": iso is not None,
         "atlas": atlas,
-        "arrival": f"{prefix}_arrival.png",
-        "maxdepth": f"{prefix}_maxdepth.png",
+        "arrival": arrival_name,
+        "maxdepth": maxdepth_name,
         "series": {"areaKm2": area, "meanDepth": mean_d, "peakDepth": peak_d},
     }
 
@@ -333,6 +342,8 @@ def main():
     ap = argparse.ArgumentParser(description="HEC-RAS depth rasters → web assets")
     ap.add_argument("--max-dim", type=int, default=1400, help="макс. сторона кадра, px")
     ap.add_argument("--max-frames", type=int, default=60, help="макс. число кадров")
+    ap.add_argument("--format", choices=list(FMT), default="webp",
+                    help="формат листов: webp (меньше) или png (совместимее)")
     ap.add_argument("--clean", action="store_true", help="очистить web/data перед сборкой")
     args = ap.parse_args()
 
@@ -340,7 +351,7 @@ def main():
         shutil.rmtree(OUT_DIR)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    scenarios = [process(sc, args.max_dim, args.max_frames) for sc in discover()]
+    scenarios = [process(sc, args.max_dim, args.max_frames, args.format) for sc in discover()]
 
     manifest = {
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),

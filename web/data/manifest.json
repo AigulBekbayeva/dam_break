@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-24T10:52:45+00:00",
+  "generated": "2026-08-24T11:20:29+00:00",
   "wetThreshold": 0.05,
   "scenarios": [
     {
@@ -140,12 +140,12 @@
         "rows": 7,
         "perSheet": 28,
         "sheets": [
-          "01-polnyy-proryv_atlas0.png",
-          "01-polnyy-proryv_atlas1.png"
+          "01-polnyy-proryv_atlas0.webp",
+          "01-polnyy-proryv_atlas1.webp"
         ]
       },
-      "arrival": "01-polnyy-proryv_arrival.png",
-      "maxdepth": "01-polnyy-proryv_maxdepth.png",
+      "arrival": "01-polnyy-proryv_arrival.webp",
+      "maxdepth": "01-polnyy-proryv_maxdepth.webp",
       "series": {
         "areaKm2": [
           0.3208333315001318,
@@ -437,12 +437,12 @@
         "rows": 9,
         "perSheet": 36,
         "sheets": [
-          "02-chastichnyy-proryv_atlas0.png",
-          "02-chastichnyy-proryv_atlas1.png"
+          "02-chastichnyy-proryv_atlas0.webp",
+          "02-chastichnyy-proryv_atlas1.webp"
         ]
       },
-      "arrival": "02-chastichnyy-proryv_arrival.png",
-      "maxdepth": "02-chastichnyy-proryv_maxdepth.png",
+      "arrival": "02-chastichnyy-proryv_arrival.webp",
+      "maxdepth": "02-chastichnyy-proryv_maxdepth.webp",
       "series": {
         "areaKm2": [
           0.23706297346539812,
@@ -734,12 +734,12 @@
         "rows": 9,
         "perSheet": 36,
         "sheets": [
-          "03-postepennyy-razmyv_atlas0.png",
-          "03-postepennyy-razmyv_atlas1.png"
+          "03-postepennyy-razmyv_atlas0.webp",
+          "03-postepennyy-razmyv_atlas1.webp"
         ]
       },
-      "arrival": "03-postepennyy-razmyv_arrival.png",
-      "maxdepth": "03-postepennyy-razmyv_maxdepth.png",
+      "arrival": "03-postepennyy-razmyv_arrival.webp",
+      "maxdepth": "03-postepennyy-razmyv_maxdepth.webp",
       "series": {
         "areaKm2": [
           0.19207938282381223,
