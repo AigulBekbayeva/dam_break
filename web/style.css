@@ -1,0 +1,363 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   Палитра снята с морской навигационной карты: густая съёмочная синь,
+   бумажный светлый текст и пурпур — на бумажных картах им печатают всё,
+   что требует внимания. Здесь он отдан исключительно времени.
+   ─────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --ink:      #071a21;
+  --ink-2:    #0c2731;
+  --ink-3:    #123441;
+  --rule:     #1c4654;
+  --paper:    #dce8ec;
+  --muted:    #6e93a0;
+  --mark:     #ff2e88;
+
+  --strip-h:  116px;
+  --pad:      20px;
+
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+#map {
+  position: absolute;
+  inset: 0 0 var(--strip-h) 0;
+  background: var(--ink);
+}
+
+#flood-canvas {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────────────── общие панели */
+
+.panel {
+  position: absolute;
+  z-index: 5;
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--ink-2) 88%, transparent);
+  border: 1px solid var(--rule);
+  backdrop-filter: blur(10px);
+}
+
+.panel-title,
+.eyebrow,
+.hydro-label,
+.readout dt {
+  margin: 0;
+  font-family: var(--cond);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ─────────────────────────────────────────────────────────── картуш */
+
+.rail {
+  position: absolute;
+  z-index: 5;
+  top: var(--pad);
+  left: var(--pad);
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cartouche {
+  padding: 16px 20px 18px;
+  background: color-mix(in srgb, var(--ink) 82%, transparent);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--mark);
+  backdrop-filter: blur(10px);
+}
+
+.cartouche h1 {
+  margin: 10px 0 8px;
+  font-family: var(--cond);
+  font-weight: 600;
+  font-size: clamp(26px, 3.4vw, 38px);
+  line-height: 0.94;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cartouche .sub {
+  margin: 0;
+  padding-top: 9px;
+  border-top: 1px solid var(--rule);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* ────────────────────────────────────────────────────────── сценарии */
+
+.scenarios { position: static; }
+
+#scenario-list { margin-top: 10px; }
+
+.scenario {
+  display: block;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 9px 10px;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--paper);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.scenario:hover { background: var(--ink-3); }
+
+.scenario.is-on {
+  background: var(--ink-3);
+  border-color: var(--mark);
+}
+
+.scenario b { display: block; font-weight: 500; }
+
+.scenario span {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.mode-title { margin-top: 16px; }
+
+.modes { display: flex; gap: 4px; margin-top: 8px; }
+
+.mode {
+  flex: 1;
+  padding: 7px 4px;
+  background: none;
+  border: 1px solid var(--rule);
+  color: var(--muted);
+  font-family: var(--cond);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.mode.is-on { color: var(--paper); border-color: var(--mark); }
+
+/* ───────────────────────────────────────────── рейка (легенда + отсчёт) */
+
+.gauge {
+  top: var(--pad);
+  right: var(--pad);
+  width: 118px;
+}
+
+.gauge-body { display: flex; gap: 9px; margin-top: 10px; }
+
+.gauge-bar {
+  position: relative;
+  width: 15px;
+  height: 176px;
+  border: 1px solid var(--rule);
+  /* сверху глубоко, снизу мелко — как на водомерной рейке */
+  background: linear-gradient(to top,
+    #b6f2e4 0%, #6fdcd8 12%, #34aedc 30%, #2477c9 50%, #2a46a8 71%, #3b2380 88%, #4e1257 100%);
+}
+
+#gauge-caret {
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  height: 2px;
+  background: var(--mark);
+  box-shadow: 0 0 0 1px var(--ink);
+  transform: translateY(-1px);
+}
+
+.gauge-ticks {
+  position: relative;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  height: 176px;
+}
+
+.gauge-ticks li {
+  position: absolute;
+  transform: translateY(-50%);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.gauge-readout {
+  margin: 10px 0 0;
+  padding-top: 9px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+#gauge-value.is-dry { color: var(--muted); }
+
+/* ─────────────────────────────────────────────────── полоса гидрографа */
+
+.strip {
+  position: absolute;
+  z-index: 6;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--strip-h);
+  display: flex;
+  align-items: stretch;
+  gap: 20px;
+  padding: 14px 20px 12px;
+  background: var(--ink-2);
+  border-top: 1px solid var(--rule);
+}
+
+.play {
+  flex: none;
+  align-self: center;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 1px solid var(--rule);
+  color: var(--paper);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.play:hover { border-color: var(--mark); }
+.play.is-playing { color: var(--mark); border-color: var(--mark); }
+.play svg { width: 15px; height: 15px; fill: currentColor; }
+
+.readout {
+  flex: none;
+  align-self: center;
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  width: 148px;
+}
+
+.readout div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+
+.readout dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+#r-time { color: var(--mark); }
+
+.hydro {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#hydro {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: block;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+#hydro:focus-visible { outline: 2px solid var(--mark); outline-offset: 2px; }
+
+.hydro-label { margin: 5px 0 0; }
+
+/* ──────────────────────────────────────────────────────────── статус */
+
+.status {
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 10px 18px;
+  background: var(--ink-2);
+  border: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.status[hidden] { display: none; }
+
+/* ─────────────────────────────────────────────────── карта: мелочи */
+
+.maplibregl-ctrl-attrib {
+  font-family: var(--mono);
+  font-size: 10px;
+  background: color-mix(in srgb, var(--ink) 80%, transparent) !important;
+}
+
+.maplibregl-ctrl-attrib a { color: var(--muted); }
+.maplibregl-ctrl-group { border: 1px solid var(--rule) !important; background: var(--ink-2) !important; }
+.maplibregl-ctrl-group button + button { border-top: 1px solid var(--rule); }
+.maplibregl-ctrl-group button span { filter: invert(1) hue-rotate(180deg); }
+
+:focus-visible { outline: 2px solid var(--mark); outline-offset: 2px; }
+
+/* ────────────────────────────────────────────────────────── адаптив */
+
+@media (max-width: 720px) {
+  :root { --strip-h: 104px; --pad: 12px; }
+
+  .rail { width: 196px; }
+  .cartouche { padding: 11px 13px 12px; }
+  .cartouche h1 { font-size: 22px; }
+  .cartouche .sub { display: none; }
+
+  .scenarios { padding: 10px 12px; }
+  .scenario { font-size: 12px; padding: 7px 8px; }
+
+  .gauge { width: 92px; padding: 10px 12px; }
+  .gauge-bar, .gauge-ticks { height: 118px; }
+
+  .readout { display: none; }
+  .strip { gap: 12px; padding: 10px 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

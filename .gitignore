@@ -1,0 +1,12 @@
+# Исходные растры HEC-RAS — в репозиторий не кладём (гигабайты).
+# Их место в общем хранилище, а в git идут только собранные ассеты web/data/.
+data/
+!data/.gitkeep
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
+.idea/
+.vscode/

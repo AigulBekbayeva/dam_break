@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Прорыв плотины — зона затопления</title>
+<meta name="description" content="Интерактивная визуализация распространения волны прорыва по результатам расчёта HEC-RAS на ЦМР 5 м.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<link href="style.css" rel="stylesheet">
+</head>
+<body>
+
+<div id="map" aria-label="Карта зоны затопления"></div>
+
+<!-- Кадр волны рисуется сюда и проецируется на карту как canvas-источник -->
+<canvas id="flood-canvas" width="2" height="2" aria-hidden="true"></canvas>
+
+<div class="rail">
+
+<!-- Картуш -->
+<header class="cartouche">
+  <p class="eyebrow">HEC-RAS 2D · ЦМР 5 м</p>
+  <h1>Прорыв<br>плотины</h1>
+  <p class="sub">Распространение волны и зона затопления</p>
+</header>
+
+<!-- Сценарии -->
+<nav class="panel scenarios" aria-label="Сценарии">
+  <p class="panel-title">Сценарий</p>
+  <div id="scenario-list" role="radiogroup"></div>
+
+  <p class="panel-title mode-title">Слой</p>
+  <div class="modes" role="radiogroup" aria-label="Отображаемый слой">
+    <button class="mode is-on" data-mode="wave" role="radio" aria-checked="true">Волна</button>
+    <button class="mode" data-mode="max" role="radio" aria-checked="false">Максимум</button>
+  </div>
+</nav>
+
+</div>
+
+<!-- Рейка: легенда и одновременно отсчёт под курсором -->
+<aside class="panel gauge" aria-label="Шкала глубины">
+  <p class="panel-title">Глубина, м</p>
+  <div class="gauge-body">
+    <div class="gauge-bar"><span id="gauge-caret" hidden></span></div>
+    <ul class="gauge-ticks" id="gauge-ticks"></ul>
+  </div>
+  <p class="gauge-readout"><span id="gauge-value">—</span></p>
+</aside>
+
+<!-- Гидрограф -->
+<footer class="strip">
+  <button id="play" class="play" aria-label="Запустить воспроизведение">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path id="play-icon" d="M4 2.5 13 8l-9 5.5z"/></svg>
+  </button>
+
+  <dl class="readout">
+    <div><dt>Время</dt><dd id="r-time">—</dd></div>
+    <div><dt>Площадь</dt><dd id="r-area">—</dd></div>
+    <div><dt>Макс. глубина</dt><dd id="r-depth">—</dd></div>
+  </dl>
+
+  <div class="hydro">
+    <canvas id="hydro" role="slider" tabindex="0"
+            aria-label="Шкала времени: площадь затопления"
+            aria-valuemin="0" aria-valuenow="0" aria-valuemax="0"></canvas>
+    <p class="hydro-label">Площадь затопления, км²</p>
+  </div>
+</footer>
+
+<p id="status" class="status" role="status">Загрузка данных…</p>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
