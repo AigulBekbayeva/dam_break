@@ -1,11 +1,11 @@
 {
   "rampMax": 16,
-  "generated": "2026-08-25T06:02:27+00:00",
+  "generated": "2026-08-25T06:04:20+00:00",
   "wetThreshold": 0.05,
   "scenarios": [
     {
       "id": "01-vtb-plan-02222",
-      "label": "vtb-plan-02222",
+      "label": "Верхне-Тобольское · прорыв плотины",
       "width": 1400,
       "height": 899,
       "frames": 60,
