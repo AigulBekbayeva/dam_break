@@ -96,8 +96,11 @@ def discover() -> list[Scenario]:
         if not files:
             print(f"  пропуск {sub.name}: нет .tif")
             continue
-        # 01_polnyy_proryv → "Полный прорыв" (префикс задаёт порядок)
-        label = re.sub(r"^\d+[_\-\s]*", "", sub.name).replace("_", " ").strip()
+        # Подпись: label.txt, если положен импортёром, иначе имя каталога
+        # (числовой префикс задаёт порядок и в подпись не попадает).
+        lf = sub / "label.txt"
+        label = (lf.read_text(encoding="utf-8").strip() if lf.exists()
+                 else re.sub(r"^\d+[_\-\s]*", "", sub.name).replace("_", " ").strip())
         scenarios.append(Scenario(key=sub.name, label=label or sub.name, files=files))
 
     if not scenarios:
@@ -353,7 +356,13 @@ def main():
 
     scenarios = [process(sc, args.max_dim, args.max_frames, args.format) for sc in discover()]
 
+    # Верх цветовой шкалы общий для всех сценариев — иначе их нельзя
+    # сравнивать глазом. Но и упирать его в 14 м нельзя: прорыв плотины
+    # даёт глубины, которых паводок не даёт.
+    ramp_max = max(6.0, math.ceil(max(s["maxDepth"] for s in scenarios) / 2) * 2)
+
     manifest = {
+        "rampMax": ramp_max,
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "wetThreshold": WET_THRESHOLD,
         "scenarios": scenarios,

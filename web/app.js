@@ -22,6 +22,7 @@
     [14.0, 100, [78,  18,  87]],
   ];
   const TICKS = [0.1, 1, 3, 6, 10, 14];
+  let rampK = 1; // множитель шкалы: STOPS заданы для максимума 14 м
 
   const $ = (id) => document.getElementById(id);
   const el = {
@@ -67,6 +68,7 @@
   const lerp = (a, b, f) => a + (b - a) * f;
 
   function pctForDepth(d) {
+    d /= rampK;
     if (d <= STOPS[0][0]) return 0;
     for (let i = 1; i < STOPS.length; i++) {
       if (d <= STOPS[i][0]) {
@@ -114,8 +116,9 @@
     el.ticks.innerHTML = "";
     for (const d of TICKS) {
       const li = document.createElement("li");
-      li.textContent = d < 1 ? d.toFixed(1) : String(d);
-      li.style.bottom = pctForDepth(d) + "%";
+      const v = d * rampK;
+      li.textContent = v < 1 ? v.toFixed(1) : String(Math.round(v));
+      li.style.bottom = pctForDepth(v) + "%";
       el.ticks.appendChild(li);
     }
   }
@@ -619,6 +622,8 @@
       return fail(err);
     }
     state.manifest = manifest;
+    rampK = (manifest.rampMax || 14) / 14;
+    paintTicks();
     if (!manifest.scenarios || !manifest.scenarios.length) {
       return fail(new Error("В манифесте нет сценариев"));
     }

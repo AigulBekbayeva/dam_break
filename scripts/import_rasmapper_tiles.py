@@ -75,6 +75,7 @@ def main():
     ap = argparse.ArgumentParser(description="RAS Mapper tile cache → GeoTIFF")
     ap.add_argument("db", help="файл .db из RAS Mapper")
     ap.add_argument("--name", help="имя каталога сценария в data/raw/")
+    ap.add_argument("--label", help="подпись сценария в интерфейсе (иначе имя каталога)")
     ap.add_argument("--zoom", type=int, help="зум (по умолчанию максимальный)")
     ap.add_argument("--frames", type=int, default=72, help="сколько срезов оставить")
     ap.add_argument("--list", action="store_true", help="только показать содержимое")
@@ -123,6 +124,8 @@ def main():
 
     out = ROOT / "data" / "raw" / (args.name or Path(args.db).stem)
     out.mkdir(parents=True, exist_ok=True)
+    if args.label:
+        (out / "label.txt").write_text(args.label, encoding="utf-8")
 
     profile = dict(driver="GTiff", dtype="float32", count=1, width=W, height=H,
                    crs="EPSG:3857", transform=transform, nodata=-9999.0,

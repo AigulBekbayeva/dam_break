@@ -54,10 +54,21 @@ cd web && python -m http.server 8000
 подходит напрямую:
 
 ```bash
-python scripts/import_rasmapper_tiles.py sce1.db --name 01_stsenariy-1 --list
-python scripts/import_rasmapper_tiles.py sce1.db --name 01_stsenariy-1 --frames 72
+python scripts/import_rasmapper_tiles.py data/tilecache/sce1.db --list
+python scripts/import_rasmapper_tiles.py data/tilecache/sce1.db \
+    --name 01_vt-proryv --label "Верхне-Тобольское · прорыв плотины" --frames 72
 python scripts/prepare.py --clean
 ```
+
+Сами `.db` кладите в `data/tilecache/` — каталог `data/` целиком в
+`.gitignore`, в репозиторий уходят только собранные ассеты. Импортёр
+запускается по одному разу на файл; `--name` задаёт порядок в списке,
+`--label` — подпись в интерфейсе (пишется в `label.txt` рядом с растрами).
+
+Верх цветовой шкалы общий для всех сценариев, иначе их нельзя сравнивать
+глазом, но подстраивается под самый глубокий из них: `rampMax` в
+манифесте. Паводок и прорыв одной плотины окажутся в одной системе
+отсчёта автоматически.
 
 Внутри такого `.db` — SQLite вида MBTiles с дополнительной колонкой `time`
 и уже **отрисованными** PNG: цвет там не значение, а картинка по легенде.
