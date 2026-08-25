@@ -114,7 +114,27 @@ html, body {
 
 .scenarios { position: static; }
 
-#scenario-list { margin-top: 10px; }
+#group-list, #scenario-list { margin-top: 10px; }
+
+#group-block[hidden] { display: none; }
+
+/* Заголовок «Сценарий» отбивается от блока водохранилищ только когда
+   этот блок есть — на одиночном сценарии лишняя линия ни к чему. */
+#group-block:not([hidden]) + .scenario-title {
+  margin-top: 15px;
+  padding-top: 13px;
+  border-top: 1px solid var(--rule);
+}
+
+/* Водохранилище — верхний уровень, поэтому набрано картографическим
+   узким шрифтом в разрядку, как подписи на самой карте. */
+.group b {
+  font-family: var(--cond);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
 
 .scenario {
   display: block;

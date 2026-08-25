@@ -28,6 +28,8 @@
   const el = {
     status: $("status"),
     list: $("scenario-list"),
+    groupBlock: $("group-block"),
+    groupList: $("group-list"),
     play: $("play"),
     playIcon: $("play-icon"),
     hydro: $("hydro"),
@@ -43,6 +45,8 @@
   const state = {
     manifest: null,
     sc: null,          // текущий сценарий (объект манифеста)
+    group: null,       // текущее водохранилище
+    groups: [],        // [{name, items[]}] в порядке манифеста
     frames: [],        // Uint8Array на кадр
     maxFrame: null,    // Uint8Array огибающей
     lut: null,         // Uint32Array 256 → RGBA
@@ -159,7 +163,8 @@
     }
   }
 
-  async function loadScenario(sc) {
+  async function loadScenario(sc, { refit = true, at = null } = {}) {
+    const wasPlaying = state.playing;
     state.sc = sc;
     state.playing = false;
     state.t = 0;
@@ -187,11 +192,13 @@
 
     el.hydro.setAttribute("aria-valuemax", String(sc.frames - 1));
     prepareCanvas(sc);
-    attachLayer(sc, state.started);
+    attachLayer(sc, state.started, refit || !state.started);
     state.started = true;
+    if (at !== null) state.t = at * (state.frames.length - 1);
     resizeHydro();
     renderCurrent();
     setStatus(null);
+    if (wasPlaying) togglePlay(true);
   }
 
   /* ──────────────────────────────────────────────────────────── рендер */
@@ -259,7 +266,7 @@
 
   /* ────────────────────────────────────────────────────────────── карта */
 
-  function attachLayer(sc, animate = true) {
+  function attachLayer(sc, animate = true, refit = true) {
     if (map.getLayer("flood")) map.removeLayer("flood");
     if (map.getSource("flood")) map.removeSource("flood");
 
@@ -276,6 +283,7 @@
       paint: { "raster-opacity": 1, "raster-fade-duration": 0 },
     });
 
+    if (!refit) return;
     const [tl, , br] = sc.corners;
     map.fitBounds([[tl[0], br[1]], [br[0], tl[1]]], {
       padding: fitPadding(),
@@ -512,31 +520,86 @@
 
   /* ───────────────────────────────────────────────────────── интерфейс */
 
-  function buildScenarioList() {
-    el.list.innerHTML = "";
-    state.manifest.scenarios.forEach((sc, i) => {
-      const b = document.createElement("button");
-      b.className = "scenario" + (i === 0 ? " is-on" : "");
-      b.type = "button";
-      b.setAttribute("role", "radio");
-      b.setAttribute("aria-checked", String(i === 0));
-      b.innerHTML =
-        `<b></b><span>макс. ${sc.maxDepth.toFixed(1)} м · ` +
-        `${Math.max(...sc.series.areaKm2).toFixed(2)} км²</span>`;
-      b.querySelector("b").textContent = sc.label;
-      b.addEventListener("click", () => {
-        if (state.sc === sc) return;
-        [...el.list.children].forEach((n) => {
-          n.classList.remove("is-on");
-          n.setAttribute("aria-checked", "false");
-        });
-        b.classList.add("is-on");
-        b.setAttribute("aria-checked", "true");
-        setStatus("Загрузка кадров…");
-        loadScenario(sc).catch(fail);
-      });
-      el.list.appendChild(b);
+  /* Сценарии группируются по водохранилищу. Порядок групп и внутри групп —
+     как в манифесте, то есть задаётся числовыми префиксами каталогов. */
+  function buildGroups() {
+    const by = new Map();
+    for (const sc of state.manifest.scenarios) {
+      const key = sc.group || "";
+      if (!by.has(key)) by.set(key, { name: key, items: [] });
+      by.get(key).items.push(sc);
+    }
+    state.groups = [...by.values()];
+  }
+
+  function row(cls, title, note, onPick) {
+    const b = document.createElement("button");
+    b.className = cls;
+    b.type = "button";
+    b.setAttribute("role", "radio");
+    b.innerHTML = "<b></b><span></span>";
+    b.querySelector("b").textContent = title;
+    b.querySelector("span").textContent = note;
+    b.addEventListener("click", onPick);
+    return b;
+  }
+
+  function markChosen(container, chosen) {
+    [...container.children].forEach((n) => {
+      const on = n === chosen;
+      n.classList.toggle("is-on", on);
+      n.setAttribute("aria-checked", String(on));
     });
+  }
+
+  const peakArea = (sc) => Math.max(...sc.series.areaKm2);
+
+  function buildGroupList() {
+    const many = state.groups.length > 1;
+    el.groupBlock.hidden = !many;
+    if (!many) return;
+
+    el.groupList.innerHTML = "";
+    for (const g of state.groups) {
+      const deepest = Math.max(...g.items.map((s) => s.maxDepth));
+      const note = `${g.items.length} сцен. · до ${deepest.toFixed(1)} м`;
+      el.groupList.appendChild(
+        row("scenario group", g.name, note, () => selectGroup(g))
+      );
+    }
+  }
+
+  function buildScenarioList(group) {
+    el.list.innerHTML = "";
+    for (const sc of group.items) {
+      const note = `макс. ${sc.maxDepth.toFixed(1)} м · ${peakArea(sc).toFixed(2)} км²`;
+      el.list.appendChild(row("scenario", sc.label, note, () => selectScenario(sc)));
+    }
+  }
+
+  function selectGroup(g) {
+    if (state.group === g) return;
+    state.group = g;
+    if (state.groups.length > 1) {
+      markChosen(el.groupList, el.groupList.children[state.groups.indexOf(g)]);
+    }
+    buildScenarioList(g);
+    selectScenario(g.items[0], true);
+  }
+
+  /* Внутри одного водохранилища камеру не трогаем и удерживаем позицию на
+     шкале времени: иначе паводок и прорыв не сравнить — при каждом
+     переключении карта улетала бы и отсчёт сбрасывался. */
+  function selectScenario(sc, groupChanged = false) {
+    if (state.sc === sc) return;
+    markChosen(el.list, el.list.children[state.group.items.indexOf(sc)]);
+
+    const keep = !groupChanged && state.sc && state.frames.length > 1
+      ? state.t / (state.frames.length - 1)
+      : null;
+
+    setStatus("Загрузка кадров…");
+    loadScenario(sc, { refit: groupChanged, at: keep }).catch(fail);
   }
 
   function setMode(mode) {
@@ -650,9 +713,14 @@
       updateHover();
     });
 
-    buildScenarioList();
+    buildGroups();
+    buildGroupList();
 
     map.on("load", () => {
+      state.group = state.groups[0];
+      if (state.groups.length > 1) markChosen(el.groupList, el.groupList.children[0]);
+      buildScenarioList(state.group);
+      markChosen(el.list, el.list.children[0]);
       loadScenario(first)
         .then(() => {
           if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) togglePlay(true);

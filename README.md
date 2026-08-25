@@ -60,6 +60,28 @@ python scripts/import_rasmapper_tiles.py data/tilecache/sce1.db \
 python scripts/prepare.py --clean
 ```
 
+`--group` объединяет сценарии одного водохранилища: в интерфейсе
+появляется два уровня выбора — сначала объект, потом сценарий. Если группа
+не задана, но подпись содержит `·`, `—` или `|`, она разбивается сама
+(`«Каратомарское · паводок»`). При одной группе блок выбора объекта
+скрывается.
+
+```bash
+python scripts/import_rasmapper_tiles.py data/tilecache/vt_pavodok.db \
+    --name 01_vt-pavodok --group "Верхне-Тобольское" --label "Максимальный паводок"
+python scripts/import_rasmapper_tiles.py data/tilecache/vt_proryv.db \
+    --name 02_vt-proryv  --group "Верхне-Тобольское" --label "Прорыв плотины"
+python scripts/import_rasmapper_tiles.py data/tilecache/kt_pavodok.db \
+    --name 03_kt-pavodok --group "Каратомарское"     --label "Максимальный паводок"
+python scripts/import_rasmapper_tiles.py data/tilecache/kt_proryv.db \
+    --name 04_kt-proryv  --group "Каратомарское"     --label "Прорыв плотины"
+```
+
+Внутри одного водохранилища переключение сценария **не трогает камеру и
+удерживает позицию на шкале времени** — иначе паводок и прорыв не
+сравнить: карта улетала бы, а отсчёт сбрасывался. Смена водохранилища,
+наоборот, пересобирает вид и начинает с нуля.
+
 Сами `.db` кладите в `data/tilecache/` — каталог `data/` целиком в
 `.gitignore`, в репозиторий уходят только собранные ассеты. Импортёр
 запускается по одному разу на файл; `--name` задаёт порядок в списке,
@@ -186,6 +208,21 @@ python scripts/prepare.py --clean --max-dim 1600 --max-frames 80
 сотню мегабайт, положите их в GitHub Releases или на Cloudflare R2 и
 поменяйте базовый путь в `app.js` — формат читается по обычному HTTP.
 
+## Тест интерфейса
+
+Логика выбора проверяется без браузера — на настоящем `manifest.json`,
+в jsdom, с заглушками только для MapLibre и распаковки атласов:
+
+```bash
+npm install --no-save jsdom
+node tests/ui.test.js
+```
+
+Проверяется, что группы собираются из `group.txt`, что внутри
+водохранилища камера остаётся на месте, а позиция на шкале переносится
+пропорционально (кадр 3 из 36 → кадр 5.06 из 60), и что при смене
+водохранилища вид пересобирается.
+
 ## Известные ограничения
 
 - Подложка — CARTO Dark Matter, публичный демо-эндпоинт. Для продакшена
@@ -202,12 +239,14 @@ python scripts/prepare.py --clean --max-dim 1600 --max-frames 80
 ## Структура
 
 ```
-scripts/prepare.py         пайплайн: GeoTIFF → PNG-атласы + manifest.json
+scripts/prepare.py         пайплайн: GeoTIFF → WebP-атласы + manifest.json
+scripts/import_rasmapper_tiles.py  тайловый кэш .db → GeoTIFF
 scripts/make_demo_data.py  генератор синтетического набора
 web/index.html             разметка
 web/style.css              палитра и типографика
 web/app.js                 распаковка, рендер, гидрограф, шкала
 web/data/                  собранные ассеты (коммитятся)
+tests/ui.test.js           прогон интерфейса в jsdom
 data/raw/                  исходные растры (в .gitignore)
 ```
 

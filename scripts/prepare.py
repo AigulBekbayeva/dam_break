@@ -81,6 +81,7 @@ class Scenario:
     key: str
     label: str
     files: list[Path]
+    group: str = ""
 
 
 def discover() -> list[Scenario]:
@@ -101,7 +102,19 @@ def discover() -> list[Scenario]:
         lf = sub / "label.txt"
         label = (lf.read_text(encoding="utf-8").strip() if lf.exists()
                  else re.sub(r"^\d+[_\-\s]*", "", sub.name).replace("_", " ").strip())
-        scenarios.append(Scenario(key=sub.name, label=label or sub.name, files=files))
+        # Группа (водохранилище): либо group.txt, либо часть подписи до
+        # разделителя — «Каратомарское · паводок» распадается сама.
+        gf = sub / "group.txt"
+        if gf.exists():
+            group = gf.read_text(encoding="utf-8").strip()
+        elif any(sep in label for sep in ("·", "—", "|")):
+            group, _, label = (label.replace("—", "·").replace("|", "·").partition("·"))
+            group, label = group.strip(), label.strip()
+        else:
+            group = ""
+
+        scenarios.append(Scenario(key=sub.name, label=label or sub.name,
+                                  files=files, group=group))
 
     if not scenarios:
         sys.exit("Сценарии не найдены.")
@@ -216,7 +229,8 @@ def process(sc: Scenario, max_dim: int, max_frames: int, fmt: str = "png") -> di
     if len(files) > max_frames:
         idx = np.linspace(0, len(files) - 1, max_frames).round().astype(int)
         files = [files[i] for i in sorted(set(idx.tolist()))]
-    print(f"\n▸ {sc.label}: {len(sc.files)} кадров → {len(files)}")
+    print(f"\n▸ {(sc.group + ' · ' if sc.group else '') + sc.label}: "
+          f"{len(sc.files)} кадров → {len(files)}")
 
     window, src_transform, src_crs = flood_extent(files)
     print(f"  окно затопления: {int(window.width)}×{int(window.height)} px")
@@ -308,6 +322,7 @@ def process(sc: Scenario, max_dim: int, max_frames: int, fmt: str = "png") -> di
     return {
         "id": prefix,
         "label": sc.label,
+        "group": sc.group,
         "width": dw,
         "height": dh,
         "frames": len(files),

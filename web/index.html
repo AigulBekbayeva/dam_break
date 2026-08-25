@@ -29,9 +29,14 @@
 </header>
 
 <!-- Сценарии -->
-<nav class="panel scenarios" aria-label="Сценарии">
-  <p class="panel-title">Сценарий</p>
-  <div id="scenario-list" role="radiogroup"></div>
+<nav class="panel scenarios" aria-label="Выбор сценария">
+  <div id="group-block" hidden>
+    <p class="panel-title">Водохранилище</p>
+    <div id="group-list" role="radiogroup" aria-label="Водохранилище"></div>
+  </div>
+
+  <p class="panel-title scenario-title">Сценарий</p>
+  <div id="scenario-list" role="radiogroup" aria-label="Сценарий"></div>
 
   <p class="panel-title mode-title">Слой</p>
   <div class="modes" role="radiogroup" aria-label="Отображаемый слой">
