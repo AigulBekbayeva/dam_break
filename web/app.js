@@ -7,7 +7,26 @@
 (() => {
   "use strict";
 
-  const BASEMAP = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+  /* Подложки. OSM даёт названия сёл и дорожную сеть — по такой карте видно,
+     что именно попадает в зону; тёмная не отвлекает от самой воды.
+     Тайлы OSM берутся с общественного сервера: для демонстрации это
+     допустимо, для нагруженного сайта нужны свои. */
+  const BASEMAPS = {
+    dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+    osm: {
+      version: 8,
+      sources: {
+        osm: {
+          type: "raster",
+          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+          tileSize: 256,
+          maxzoom: 19,
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        },
+      },
+      layers: [{ id: "osm", type: "raster", source: "osm" }],
+    },
+  };
   const FRAMES_PER_SEC = 6; // скорость воспроизведения в кадрах данных
 
   /* Шкала глубины. Позиция нелинейна: на мелководье шаг мельче, потому что
@@ -53,6 +72,7 @@
     t: 0,              // дробный индекс кадра
     playing: false,
     mode: "wave",
+    basemap: "dark",
     ctx: null,
     imageData: null,
     px: null,          // Uint32Array поверх imageData
@@ -602,6 +622,26 @@
     loadScenario(sc, { refit: groupChanged, at: keep }).catch(fail);
   }
 
+  /* Смена стиля сносит все слои карты, поэтому наш слой воды подключается
+     заново по событию style.load — но без пересборки вида: положение
+     камеры при смене подложки трогать нельзя. */
+  function setBasemap(key) {
+    if (key === state.basemap || !BASEMAPS[key]) return;
+    state.basemap = key;
+    document.querySelectorAll(".base").forEach((b) => {
+      const on = b.dataset.base === key;
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-checked", String(on));
+    });
+    map.once("style.load", () => {
+      if (state.sc) {
+        attachLayer(state.sc, false, false);
+        renderCurrent();
+      }
+    });
+    map.setStyle(BASEMAPS[key]);
+  }
+
   function setMode(mode) {
     state.mode = mode;
     if (mode === "max") togglePlay(false);
@@ -630,6 +670,10 @@
 
     document.querySelectorAll(".mode").forEach((b) =>
       b.addEventListener("click", () => setMode(b.dataset.mode))
+    );
+
+    document.querySelectorAll(".base").forEach((b) =>
+      b.addEventListener("click", () => setBasemap(b.dataset.base))
     );
 
     let dragging = false;
@@ -696,7 +740,7 @@
 
     map = new maplibregl.Map({
       container: "map",
-      style: BASEMAP,
+      style: BASEMAPS.dark,
       bounds: [[tl[0], br[1]], [br[0], tl[1]]],
       fitBoundsOptions: { padding: fitPadding() },
       attributionControl: { compact: true },

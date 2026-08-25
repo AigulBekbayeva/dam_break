@@ -188,7 +188,42 @@ html, body {
   transition: color 0.15s, border-color 0.15s;
 }
 
-.mode.is-on { color: var(--paper); border-color: var(--mark); }
+.mode.is-on, .base.is-on { color: var(--paper); border-color: var(--mark); }
+
+.base {
+  flex: 1;
+  padding: 7px 4px;
+  background: none;
+  border: 1px solid var(--rule);
+  color: var(--muted);
+  font-family: var(--cond);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+/* Выходные данные — как имя съёмщика в углу бумажной карты: тихо, мелко,
+   но на месте. */
+.credit {
+  margin: 9px 0 0;
+  padding-top: 9px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.credit a {
+  color: var(--paper);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+}
+
+.credit a:hover { color: var(--mark); border-bottom-color: var(--mark); }
 
 /* ───────────────────────────────────────────── рейка (легенда + отсчёт) */
 
@@ -367,6 +402,7 @@ html, body {
   .cartouche { padding: 11px 13px 12px; }
   .cartouche h1 { font-size: 22px; }
   .cartouche .sub { display: none; }
+  .credit { margin-top: 7px; padding-top: 7px; font-size: 10px; }
 
   .scenarios { padding: 10px 12px; }
   .scenario { font-size: 12px; padding: 7px 8px; }

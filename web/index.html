@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Прорыв плотины — зона затопления</title>
+<title>Сценарии максимального паводка и прорыва плотин — зона затопления</title>
 <meta name="description" content="Интерактивная визуализация распространения волны прорыва по результатам расчёта HEC-RAS на ЦМР 5 м.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,8 +24,13 @@
 <!-- Картуш -->
 <header class="cartouche">
   <p class="eyebrow">HEC-RAS 2D · ЦМР 5 м</p>
-  <h1>Прорыв<br>плотины</h1>
+  <h1>Сценарии прорыва<br>плотин</h1>
   <p class="sub">Распространение волны и зона затопления</p>
+  <p class="credit">
+    Разработала Бекбаева А.М.<br>
+    <a href="https://www.linkedin.com/in/aigulbekbayeva/"
+       target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
+  </p>
 </header>
 
 <!-- Сценарии -->
@@ -37,6 +42,12 @@
 
   <p class="panel-title scenario-title">Сценарий</p>
   <div id="scenario-list" role="radiogroup" aria-label="Сценарий"></div>
+
+  <p class="panel-title mode-title">Подложка</p>
+  <div class="modes" role="radiogroup" aria-label="Подложка">
+    <button class="base is-on" data-base="dark" role="radio" aria-checked="true">Тёмная</button>
+    <button class="base" data-base="osm" role="radio" aria-checked="false">OSM</button>
+  </div>
 
   <p class="panel-title mode-title">Слой</p>
   <div class="modes" role="radiogroup" aria-label="Отображаемый слой">
